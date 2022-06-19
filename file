@@ -1,0 +1,12 @@
+<html>
+    <import ref="import.html"></import>
+    <def tag="custom">
+        <style>
+        </style>
+        <label for="a"></label>
+        <input type="text" name="text" id="a"/>
+    </def>
+    <custom/>
+    <custom/>
+    <custom/>
+</html>
