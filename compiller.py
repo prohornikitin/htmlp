@@ -1,21 +1,31 @@
 import clone_monkeypatch
 from bs4 import BeautifulSoup
+from pathlib import Path
 
-def compile(path: str) -> str:
+
+def compile(path: str, include_dir: str) -> str:
     with open(path) as file:
         dom = BeautifulSoup(file.read(), 'html.parser')
-    compile_imports(dom)
+    compile_imports(dom, include_dir)
     compile_styles(dom)
     compile_custom_tags(dom)
 
     return dom.prettify()
 
-def compile_imports(dom):
+def compile_imports(dom, dir, route=[]):
     for node in dom.select('include'):
-        with open(node["ref"]) as file:
+        ref = node['ref']
+        with open(Path(dir) / ref) as file:
             text = file.read()
-        include_html = BeautifulSoup(text, 'html.parser')
-        node.replace_with(include_html)
+        included_dom = BeautifulSoup(text, 'html.parser')
+        
+        route2 = route.copy()
+        if route2.count(ref) != 0:
+            raise Exception("include recursion")
+        route2.append(ref)
+        compile_imports(included_dom, dir, route2)
+
+        node.replace_with(included_dom)
 
 def compile_styles(dom):
     data = ''

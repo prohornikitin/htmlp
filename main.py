@@ -35,6 +35,9 @@ def parse_args():
     parser.add_argument('--minify', action='store_const',
                         const=True, default=False,
                         help='minifies output')
+    parser.add_argument('--include-dir', action='store',
+                        default='./',
+                        help='changes the include dir')
     return parser.parse_args()
 
 
@@ -46,7 +49,7 @@ def wait_file_modified(file_path):
 
 
 def compile_once(args):
-    out = compile(args.input_file[0])
+    out = compile(args.input_file[0], args.include_dir)
     if args.minify:
         out = htmlmin.minify(out)
     with open(args.output_file, 'w') as file:
