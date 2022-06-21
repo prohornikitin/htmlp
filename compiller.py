@@ -1,11 +1,15 @@
 import clone_monkeypatch
 from bs4 import BeautifulSoup
 from pathlib import Path
+from functools import reduce
 
+
+class HtmlpException(Exception):
+    pass
 
 def compile(path: str, include_dir: str) -> str:
     with open(path) as file:
-        dom = BeautifulSoup(file.read(), 'html.parser')
+        dom = BeautifulSoup(file.read(), 'html.parser', multi_valued_attributes=None)
     compile_imports(dom, include_dir)
     compile_styles(dom)
     compile_custom_tags(dom)
@@ -13,19 +17,32 @@ def compile(path: str, include_dir: str) -> str:
     return dom.prettify()
 
 def compile_imports(dom, dir, route=[]):
-    for node in dom.select('include'):
-        ref = node['ref']
-        with open(Path(dir) / ref) as file:
-            text = file.read()
-        included_dom = BeautifulSoup(text, 'html.parser')
+    for tag in dom.select('include'):
+        if tag.get('ref') is None:
+            raise HtmlpException(f"Can't find 'ref' attribute of <include/> at line {tag.sourceline}.")
+        ref = tag['ref']
+
+        try:
+            with open(Path(dir) / ref) as file:
+                text = file.read()
+        except FileNotFoundError:
+            raise HtmlpException(f"Can't include file '{ref}'. File not found.")
+        except PermissionError:
+            raise HtmlpException(f"Can't include file '{ref}'. Permission error.")
+        except OSError:
+            raise HtmlpException(f"Can't include file '{ref}'.")
+
+        included_dom = BeautifulSoup(text, 'html.parser', multi_valued_attributes=None)
         
+        if route.count(ref) > 0:
+            route.append(ref)
+            formatted_route = reduce(lambda acc, x: f'{acc} -> {x}', route);
+            raise HtmlpException(f"Include recursion. Route: {formatted_route}")
+
         route2 = route.copy()
-        if route2.count(ref) != 0:
-            raise Exception("include recursion")
         route2.append(ref)
         compile_imports(included_dom, dir, route2)
-
-        node.replace_with(included_dom)
+        tag.replace_with(included_dom)
 
 def compile_styles(dom):
     data = ''
@@ -35,21 +52,24 @@ def compile_styles(dom):
         style.decompose()
     overall = dom.new_tag('style')
     overall.string = data
-    dom.html.insert(1,overall)
+    dom.html.head.insert(1,overall)
 
 def compile_custom_tags(dom):
     defs = dom.select('def')
     for definition in defs:
-        CustomElementsCompiller(dom, definition).compile()
+        CustomTagsCompiller(dom, definition).compile()
         definition.decompose()
 
 
 
-class CustomElementsCompiller:
+class CustomTagsCompiller:
     def __init__(self, dom, def_node):
         self._dom = dom
         self._max_id = 0
         self._def = def_node
+        self._args = self._def.get('args', default='').split()
+        if self._def.get('tag') is None:
+            raise HtmlpException(f"Can't find 'tag' attribute of <def/> at line {self._def.sourceline}.")
 
     def compile(self):
         for tag in self._dom.select(self._def['tag']):
@@ -57,39 +77,52 @@ class CustomElementsCompiller:
 
     def _compile_one(self, tag):
         self.ids = dict()
-        for c in self._def.findChildren():
+        for c in self._def.find_all(recursive=False):
             child = c.clone()
             self._fix_id_collision(child)
-            child = self._apply_args(tag, child)
+            self._insert_children(tag, child)
+            self._apply_args(tag, child)
             tag.insert_after(child)
         tag.decompose()
 
 
     def _apply_args(self, src, dest):
-        dest = dest.prettify()
-        args = self._def.get('args', default='').split()
-        for arg in args:
-            value = src[arg]
-            if arg == 'class':
-                value = " ".join(value)
-            dest = dest.replace(f'${arg}', value)
-        dest = dest.replace('$children', src.decode_contents(), 1)
-        return BeautifulSoup(dest, 'html.parser')
+        for k in self._args:
+            if k not in src.attrs.keys():
+                raise HtmlpException(f"expected attribute '{k}' for <{src.name}/> at line {src.sourceline}")
+        for (k,v) in dest.attrs.items():
+            for arg in self._args:
+                v = v.replace('$'+arg, src[arg])
+            dest[k] = v
+        for child in dest.find_all(recursive=False):
+            self._apply_args(src, child)
 
-    def _fix_id_collision(self, node):
-        if node.get('id') and node.get('id').startswith('?'):
-            old = node['id']
+    def _insert_children(self, src, dest):
+        if dest.text == '$children':
+            dest.string = ""
+            for child in src.find_all():
+                dest.append(child)
+            for child in src.find_all(text=True):
+                dest.append(child)
+
+        for tag in dest.find_all(recursive=False):
+            self._insert_children(src, tag)
+
+
+    def _fix_id_collision(self, tag):
+        if tag.get('id') and tag.get('id').startswith('?'):
+            old = tag['id']
             if self.ids.get(old) is None:
                 self._max_id += 1
                 self.ids[old] = str(self._max_id)
-            node['id'] = self.ids[old]
+            tag['id'] = self.ids[old]
 
-        if node.get('for') and node.get('for').startswith('?'):
-            old = node['for']
+        if tag.get('for') and tag.get('for').startswith('?'):
+            old = tag['for']
             if self.ids.get(old) is None:
                 self._max_id += 1
                 self.ids[old] = str(self._max_id)
-            node['for'] = self.ids[old]
+            tag['for'] = self.ids[old]
 
-        for child in node.findChildren():
+        for child in tag.find_all(recursive=False):
             self._fix_id_collision(child)

@@ -3,24 +3,34 @@ import os
 import time
 import traceback
 
-from compiller import compile
+from compiller import compile, HtmlpException
 import htmlmin
 
 
 def main():
     args = parse_args()
     if not args.watch:
-        compile_once(args)
+        try:
+            compile_once(args)
+            print("Succesfully compilled")
+        except KeyboardInterrupt as e:
+            return
+        except HtmlpException as e:
+            print(str(e))
+        except:
+            traceback.print_exc()
     else:
         while(True):
             try:
                 compile_once(args)
-                print("SUCCESS")
-                wait_file_modified(args.input_file[0])
+                print("Succesfully compilled")
             except KeyboardInterrupt as e:
-                raise e
+                return
+            except HtmlpException as e:
+                print(str(e))
             except:
                 traceback.print_exc()
+            wait_file_modified(args.input_file[0])
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Doing something')
@@ -43,7 +53,7 @@ def parse_args():
 
 def wait_file_modified(file_path):
     modified = modified_on = os.path.getmtime(file_path)
-    while modified <= modified_on :
+    while modified <= modified_on:
         time.sleep(0.5)
         modified = os.path.getmtime(file_path)
 
