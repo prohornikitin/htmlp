@@ -104,14 +104,19 @@ class CustomTagsCompiller:
 
         for (k,v) in dest.attrs.copy().items():
             for arg in self._args:
-                if arg.optional and (src.get(arg.name) is None):
-                    v = v.replace(arg.template, '')
-                else:
-                    v = v.replace(arg.template, src[arg.name])
-                if v.isspace() or v == '':
+                if k == arg.template:
+                    if not (arg.optional and src.get(arg.name) is None):
+                        dest[arg.name] = dest[k] if (dest[k] != '') else None
                     del dest[k]
-                else:
-                    dest[k] = v
+                elif v.find(arg.template) != (-1):
+                    if arg.optional and (src.get(arg.name) is None):
+                        v = v.replace(arg.template, '')
+                    else:
+                        v = v.replace(arg.template, src[arg.name])
+                    if v.isspace() or v == '':
+                        del dest[k]
+                    else:
+                        dest[k] = v
 
         
             
