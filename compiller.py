@@ -63,14 +63,25 @@ def compile_custom_tags(dom):
 
 
 class CustomTagsCompiller:
+    class _Arg:
+        def __init__(self, arg_str):
+            if arg_str.startswith('!'):
+                self.optional = True
+                self.name = arg_str[1:]
+            else:
+                self.optional = False
+                self.name = arg_str
+            self.template = '$' + self.name
+
+
     def __init__(self, dom, def_node):
         self._dom = dom
         self._max_id = 0
         self._def = def_node
-        self._args = self._def.get('args', default='').split()
         if self._def.get('tag') is None:
             raise HtmlpException(f"Can't find 'tag' attribute of <def/> at line {self._def.sourceline}.")
-
+        self._args = list(map(self._Arg, self._def.get('args', default='').split()))
+        
     def compile(self):
         for tag in self._dom.select(self._def['tag']):
             self._compile_one(tag)
@@ -87,13 +98,24 @@ class CustomTagsCompiller:
 
 
     def _apply_args(self, src, dest):
-        for k in self._args:
-            if k not in src.attrs.keys():
-                raise HtmlpException(f"expected attribute '{k}' for <{src.name}/> at line {src.sourceline}")
-        for (k,v) in dest.attrs.items():
+        for arg in self._args:
+            if (arg.name not in src.attrs.keys()) and not arg.optional:
+                raise HtmlpException(f"expected attribute '{arg.name}' for <{src.name}/> at line {src.sourceline}")
+
+        for (k,v) in dest.attrs.copy().items():
             for arg in self._args:
-                v = v.replace('$'+arg, src[arg])
-            dest[k] = v
+                if arg.optional and (src.get(arg.name) is None):
+                    v = v.replace(arg.template, '')
+                else:
+                    v = v.replace(arg.template, src[arg.name])
+                if v.isspace() or v == '':
+                    del dest[k]
+                else:
+                    dest[k] = v
+
+        
+            
+
         for child in dest.find_all(recursive=False):
             self._apply_args(src, child)
 
