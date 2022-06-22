@@ -1,66 +1,11 @@
-import clone_monkeypatch
-from bs4 import BeautifulSoup
-from pathlib import Path
-from functools import reduce
+from .shared import HtmlpException
 
 
-class HtmlpException(Exception):
-    pass
-
-def compile(path: str, include_dir: str) -> str:
-    with open(path) as file:
-        dom = BeautifulSoup(file.read(), 'html.parser', multi_valued_attributes=None)
-    compile_imports(dom, include_dir)
-    compile_styles(dom)
-    compile_custom_tags(dom)
-
-    return dom.prettify()
-
-def compile_imports(dom, dir, route=[]):
-    for tag in dom.select('include'):
-        if tag.get('ref') is None:
-            raise HtmlpException(f"Can't find 'ref' attribute of <include/> at line {tag.sourceline}.")
-        ref = tag['ref']
-
-        try:
-            with open(Path(dir) / ref) as file:
-                text = file.read()
-        except FileNotFoundError:
-            raise HtmlpException(f"Can't include file '{ref}'. File not found.")
-        except PermissionError:
-            raise HtmlpException(f"Can't include file '{ref}'. Permission error.")
-        except OSError:
-            raise HtmlpException(f"Can't include file '{ref}'.")
-
-        included_dom = BeautifulSoup(text, 'html.parser', multi_valued_attributes=None)
-        
-        if route.count(ref) > 0:
-            route.append(ref)
-            formatted_route = reduce(lambda acc, x: f'{acc} -> {x}', route);
-            raise HtmlpException(f"Include recursion. Route: {formatted_route}")
-
-        route2 = route.copy()
-        route2.append(ref)
-        compile_imports(included_dom, dir, route2)
-        tag.replace_with(included_dom)
-
-def compile_styles(dom):
-    data = ''
-    for style in dom.select('style'):
-        data += '\n'
-        data += style.text
-        style.decompose()
-    overall = dom.new_tag('style')
-    overall.string = data
-    dom.html.head.insert(1,overall)
-
-def compile_custom_tags(dom):
+def compile(dom):
     defs = dom.select('def')
     for definition in defs:
         CustomTagsCompiller(dom, definition).compile()
         definition.decompose()
-
-
 
 class CustomTagsCompiller:
     class _Arg:
@@ -117,9 +62,6 @@ class CustomTagsCompiller:
                         del dest[k]
                     else:
                         dest[k] = v
-
-        
-            
 
         for child in dest.find_all(recursive=False):
             self._apply_args(src, child)

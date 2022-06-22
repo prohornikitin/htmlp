@@ -1,10 +1,9 @@
 import argparse
-import os
-import time
 import traceback
-
+import file_watchdog
 from compiller import compile, HtmlpException
 import htmlmin
+from pathlib import Path
 
 
 def main():
@@ -17,8 +16,6 @@ def main():
             return
         except HtmlpException as e:
             print(str(e))
-        except:
-            traceback.print_exc()
     else:
         while(True):
             try:
@@ -28,34 +25,30 @@ def main():
                 return
             except HtmlpException as e:
                 print(str(e))
-            except:
-                traceback.print_exc()
-            wait_file_modified(args.input_file[0])
+
+            file_watchdog.wait_modify(args.watch)
 
 def parse_args():
+
     parser = argparse.ArgumentParser(description='Doing something')
     parser.add_argument('input_file', type=str, nargs=1,
-                        help='an input file')
+                        help='An input file')
     parser.add_argument('output_file', type=str, nargs='?', 
                         default='output.html',
-                        help='an input file')
-    parser.add_argument('--watch', action='store_const',
-                        const=True, default=False,
-                        help='watch files and recompile when they change')
-    parser.add_argument('--minify', action='store_const',
-                        const=True, default=False,
-                        help='minifies output')
-    parser.add_argument('--include-dir', action='store',
+                        help='An output file. Default is %(default)s')
+    parser.add_argument('--watch', metavar='DIR',  action='store', nargs='?',
+                        default=False,
+                        help='Watch files in [DIR] and recompile when it`s files change. Default is current directory')
+    parser.add_argument('--minify', action='store_true',
+                        help='Minifies output')
+    parser.add_argument('--include-dir', metavar='DIR', type=str, action='store',
                         default='./',
-                        help='changes the include dir')
-    return parser.parse_args()
+                        help='Changes the include dir')
+    args = parser.parse_args()
+    if(args.watch == None):
+        args.watch = './'
+    return args
 
-
-def wait_file_modified(file_path):
-    modified = modified_on = os.path.getmtime(file_path)
-    while modified <= modified_on:
-        time.sleep(0.5)
-        modified = os.path.getmtime(file_path)
 
 
 def compile_once(args):
@@ -70,3 +63,4 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         print()
+

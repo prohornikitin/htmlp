@@ -1,3 +1,4 @@
 htmlmin
 bs4
 argparse
+watchdog
