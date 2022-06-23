@@ -52,9 +52,9 @@ def parse_args():
 
 
 def compile_once(args):
-    out = compile(args.input_file[0], args.include_dir)
+    out = compile(args.input_file[0], args.include_dir, minify=args.minify)
     if args.minify:
-        out = htmlmin.minify(out)
+        out = htmlmin.minify(out, remove_comments=True, remove_empty_space=True)
     with open(args.output_file, 'w') as file:
         file.write(out)
 
