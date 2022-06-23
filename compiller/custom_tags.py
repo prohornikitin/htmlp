@@ -25,6 +25,8 @@ class CustomTagsCompiller:
         self._def = def_node
         if self._def.get('tag') is None:
             raise HtmlpException(f"Can't find 'tag' attribute of <def/> at line {self._def.sourceline}.")
+        if self._def.get('tag').strip() == '':
+            raise HtmlpException(f"Empty 'tag' attribute of <def/> at line {self._def.sourceline}.")
         self._args = list(map(self._Arg, self._def.get('args', default='').split()))
         
     def compile(self):
