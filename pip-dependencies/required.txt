@@ -3,3 +3,5 @@ bs4
 argparse
 watchdog
 rcssmin
+minify-html
+cssutils

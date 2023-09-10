@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <import path="InputWrapper.htmlp"/>
+        <title>Title</title>
+    </head>
+    <body>
+        <InputWrapper type="number"/>
+    </body>
+</html>

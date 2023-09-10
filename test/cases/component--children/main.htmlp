@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <import path="Wrapper.htmlp"/>
+        <title>Title</title>
+    </head>
+    <body>
+        <Wrapper>TEXT</Wrapper>
+    </body>
+</html>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <import path="Hello.htmlp"/>
+        <title>Title</title>
+    </head>
+    <body>
+        <Hello non-existing-arg="1"/>
+    </body>
+</html>

@@ -9,19 +9,28 @@ Installation
 ::
 
 	git clone git@github.com:prohornikitin/htmlp.git
-	pip3 install -r requirements.txt
+	pip install -r pip-dependencies/required.txt
 
 -----
 Usage
 -----
-`include <examples/include.rst>`_
-
-`components <examples/custom-components.rst>`_
-
 ::
 
 	python3 main.py --help
 	python3 main.py input-file.htmlp [output-file.html] [--watch] [--minify]
 
+^^^^
+Examples
+^^^^
+You can found examples of usage in test directory because they are tests also so I can guarantee that examples work
+
+-------
+Develop
+-------
+I recommend you to install dev-dependecies(as for now there is 'mypy' only)
+::
+
+	pip install -r pip-dependencies/dev.txt
 
 
+There are also some scripts in same-named directory which can help you in development

@@ -1,0 +1,3 @@
+<template args="?children">
+    <div></div>
+</template>

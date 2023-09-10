@@ -1,0 +1,4 @@
+<template>
+    <import path="main.htmlp"/>
+    <p>Hello</p>
+</template>

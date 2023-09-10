@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <import path="HelloComponent.htmlp" alias="Hello"/>
+        <title>Title</title>
+    </head>
+    <body>
+        <Hello/>
+        <Hello/>
+    </body>
+</html>
