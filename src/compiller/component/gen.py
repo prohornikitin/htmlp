@@ -2,12 +2,12 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import cached_property
 import re
-from typing import Dict, Iterable, List, cast
+from typing import Dict, Iterable, cast
 from bs4 import PageElement, Tag
 from .uniques import UniquesPerComponentInstance
 
 from .imports import ComponentArgDefinition, ComponentDefinition, Imports
-from ..shared import HtmlpException
+from ..HtmlpException import HtmlpException
 
 @dataclass(init=False, unsafe_hash=True)
 class ComponentArg(ComponentArgDefinition):

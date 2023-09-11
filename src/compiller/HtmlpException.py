@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Iterable
-from bs4 import BeautifulSoup
 
 class HtmlpException(Exception):
 	def __init__(self, error: str, source_lines: None|int|Iterable[int] = None, file_path: Path|None = None):
@@ -18,6 +17,3 @@ class HtmlpException(Exception):
 				super().__init__(f"{error}. Lines: {lines}")
 			else:
 				super().__init__(f"{error}. Lines {lines} of file {file_path}")
-
-def htmlBeautifulSoup(data: str) -> BeautifulSoup:
-	return BeautifulSoup(data, 'html.parser', multi_valued_attributes=None)

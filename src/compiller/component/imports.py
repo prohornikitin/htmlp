@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
 from functools import reduce
-from ..shared import HtmlpException, htmlBeautifulSoup
+from ..HtmlpException import HtmlpException
+from ..utils import htmlBeautifulSoup
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, TypeAlias, cast, Self
