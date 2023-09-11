@@ -1,2 +1,3 @@
 mypy
 types-beautifulsoup4
+flake8

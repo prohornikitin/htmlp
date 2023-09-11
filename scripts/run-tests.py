@@ -74,11 +74,11 @@ def run_single_case(dir: Path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Doing something')
     parser.add_argument(
-		'case', 
-		type=str,
-		nargs='?',
-		help='Test case folder name if only single needed'
-	)
+        'case', 
+        type=str,
+        nargs='?',
+        help='Test case folder name if only single needed'
+    )
     cases: Path = TEST_DIR / 'cases'
     test_case = parser.parse_args().case
     if test_case is not None:
