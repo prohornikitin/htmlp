@@ -21,7 +21,7 @@ def _get_next() -> str:
 class UniquesPerComponentInstance:
     _uniques_by_name: Dict[str, str]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._uniques_by_name = dict()
 
     def get_by_id(self, name: str) -> str:

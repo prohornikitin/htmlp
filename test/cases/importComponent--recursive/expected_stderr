@@ -1,0 +1,6 @@
+Error:
+Import recursion. Route:
+test/cases/importComponent--recursive/main.htmlp -> 
+	test/cases/importComponent--recursive/First.htmlp -> 
+	test/cases/importComponent--recursive/Second.htmlp -> 
+	test/cases/importComponent--recursive/First.htmlp.

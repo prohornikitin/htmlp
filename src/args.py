@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import Optional, List, TextIO
+from typing import Iterable, Optional, TextIO
 import sys
 from dataclasses import dataclass
 
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True, kw_only=True)
 class Args:
     out: TextIO
-    input: List[Path]
+    input: Iterable[Path]
     include_dir: Path
     need_minify: bool
     watch_dir: Optional[Path]
@@ -35,7 +35,10 @@ def parse_args() -> Args:
         action='store',
         nargs='?',
         default=False,
-        help='Watch files in [DIR] and recompile when it`s files change. Default is current directory',
+        help='''
+        Watch files in [DIR] and recompile when it`s files change.
+        Default is current directory
+        ''',
     )
     parser.add_argument(
         '--minify',
@@ -67,7 +70,7 @@ def parse_args() -> Args:
 
     return Args(
         out=out,
-        input=args.input_file,
+        input=map(Path, args.input_file),
         include_dir=Path(args.include_dir),
         need_minify=args.minify,
         watch_dir=watch,

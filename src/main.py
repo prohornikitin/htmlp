@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, TextIO
+from typing import Iterable, TextIO
 from compiller import process_file, HtmlpException
 from minify_html import minify
 from watchdog.observers import Observer
@@ -8,7 +8,7 @@ import sys
 from args import Args, parse_args
 
 
-def main(args: Args):
+def main(args: Args) -> None:
     if args.watch_dir is None:
         try:
             run_once(
@@ -27,10 +27,10 @@ def main(args: Args):
 
 def run_once(
     out: TextIO,
-    input: List[Path],
+    input: Iterable[Path],
     include_dir: Path,
     need_minify: bool,
-):
+) -> None:
     for input_path in input:
         try:
             result = process_file(input_path, include_dir)
@@ -59,7 +59,7 @@ class Watcher(FileSystemEventHandler):
             print(str(e))
 
 
-def run_with_watch(args: Args):
+def run_with_watch(args: Args) -> None:
     observer = Observer()
     event_handler = Watcher(args)
     observer.schedule(event_handler, args.watch_dir, recursive=True)

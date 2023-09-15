@@ -1,0 +1,2 @@
+Error in file test/cases/component--children-as-arg/Component.htmlp, on line 1:
+'children' can't be used as an argument of component. It's reserved for inner children (suddenly).

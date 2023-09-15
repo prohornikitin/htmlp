@@ -19,15 +19,15 @@ Usage
 	python3 main.py --help
 	python3 main.py input-file.htmlp [output-file.html] [--watch] [--minify]
 
-^^^^
+----
 Examples
-^^^^
+----
 You can found examples of usage in test directory because they are tests also so I can guarantee that examples work
 
 -------
 Develop
 -------
-I recommend you to install dev-dependecies(as for now there is 'mypy' only)
+I recommend you to install dev-dependecies
 ::
 
 	pip install -r pip-dependencies/dev.txt

@@ -1,34 +1,23 @@
 from dataclasses import dataclass
 from pathlib import Path
-from functools import reduce
-from ..HtmlpException import HtmlpException
-from ..utils import htmlBeautifulSoup
+from ..Source import Source
+from .. import exceptions as ex
 from typing import Callable, Dict, List, TypeAlias, cast, Self
 from functools import cached_property
-from bs4 import BeautifulSoup, ResultSet, Tag
+from bs4 import ResultSet, Tag
 
 
-@dataclass(init=False)
+@dataclass(init=True, unsafe_hash=True)
 class ComponentArgDefinition:
     declaration: str
-    default_value: str | None
-
-    def __init__(
-        self,
-        declaration: str,
-        default_value: str | None = None,
-    ):
-        if declaration in ["children", '?children']:
-            raise HtmlpException("You can't use 'children' as an argument. It's reserved for inner children (suddenly).")
-        self.declaration = declaration
-        self.default_value = default_value
+    default_value: str | None = None
 
     @cached_property
-    def is_optional(self):
+    def is_optional(self) -> bool:
         return self.declaration.startswith('?')
 
     @cached_property
-    def name(self):
+    def name(self) -> str:
         if self.is_optional:
             return self.declaration[1:]
         else:
@@ -37,6 +26,7 @@ class ComponentArgDefinition:
 
 @dataclass(frozen=True)
 class ComponentDefinition:
+    file: Path
     imports: Dict[str, Self]
     style_prefix: str
     template: Tag | None
@@ -51,109 +41,116 @@ class ComponentDefinition:
 Imports: TypeAlias = Dict[str, ComponentDefinition]
 
 
-def parse_imports_and_remove_them(dom: BeautifulSoup, include_dir: Path, route=None) -> Imports:
+def parse_imports_and_remove_them(
+    source: Source,
+    include_dir: Path,
+    route: List[Path] | None = None,
+) -> Imports:
     if route is None:
-        route = []
+        route = [source.path]
     ensure_no_recursion(route)
 
     imports: Imports = dict()
-    for tag in dom.select('import'):
+    for tag in source.tag.select('import'):
         if 'path' not in tag.attrs.keys():
-            raise HtmlpException(f"Can't find 'path' attribute of <import/> at line {tag.sourceline} of {route[-1]}.")
+            raise ex.NoRequiredAttr(
+                'path', 'import', route[-1], tag.sourceline
+            )
         path = include_dir / cast(str, tag['path'])
 
         alias = tag.attrs.get('alias', path.stem).lower()
         if alias in imports.keys():
-            raise HtmlpException(f"Can't use same alias {alias} on different imports at {tag.sourceline} of {route[-1]}.")
+            raise ex.SameImportAliases(alias, source.path)
         route.append(path)
-        imports[alias] = parse_definition(path, lambda dom: parse_imports_and_remove_them(dom, include_dir, route))
+        imports[alias] = parse_definition(
+            source,
+            path,
+            lambda src: parse_imports_and_remove_them(src, include_dir, route)
+        )
         route.pop()
         tag.decompose()
     return imports
 
 
-def ensure_no_recursion(route: List[Path]):
+def ensure_no_recursion(route: List[Path]) -> None:
     if len(route) == 0:
         return
     if route.index(route[-1]) != len(route) - 1:
-        formatted_route: str = reduce(
-            lambda acc, x: f"{acc} -> {x}",
-            route,
-            '',
-        )
-        raise HtmlpException(f"Import recursion. Route: {formatted_route}")
+        raise ex.ImportRecursion(route)
 
 
 _cache_by_path: Dict[Path, ComponentDefinition] = dict()
 
 
 def parse_definition(
+    src: Source,
     path: Path,
-    parse_imports: Callable[[BeautifulSoup], Imports],
+    parse_imports: Callable[[Source], Imports],
 ) -> ComponentDefinition:
     if path not in _cache_by_path.keys():
         if not path.exists():
-            raise HtmlpException(f"Cannot import component non-existant file {path.absolute()}")
-        with open(path) as file:
-            dom = htmlBeautifulSoup(file.read())
-        _check_for_disallowed_toplevel_tags(dom, path)
-        imports = parse_imports(dom)
+            raise ex.ImportedFileNotFound(path, src.path)
+        source = Source(path)
+        _check_for_disallowed_toplevel_tags(source)
+        imports = parse_imports(source)
         style_prefix: str = _pick_style_prefix(path)
         _cache_by_path[path] = ComponentDefinition(
+            path,
             imports,
             style_prefix,
-            _pick_template(dom),
-            _pick_args_def(dom),
-            _pick_script(dom),
-            _pick_stylesheet(dom),
+            _pick_template(source),
+            _pick_args_def(source),
+            _pick_script(source),
+            _pick_stylesheet(source),
         )
     return _cache_by_path[path]
 
 
-def _check_for_disallowed_toplevel_tags(dom: BeautifulSoup, file_path: Path):
+def _check_for_disallowed_toplevel_tags(src: Source) -> None:
     allowed = ['template', 'style', 'scripts', 'import']
-    for tag in dom.find_all(recursive=False):
+    for tag in src.tag.find_all(recursive=False):
         if tag.name not in allowed:
-            raise HtmlpException(f"Tag <{tag.name}> is not allowed at top-level", tag.sourceline, file_path)
+            raise ex.ProhibitedTopLevelTag(tag, src.path)
 
 
 def _pick_style_prefix(path_to_file: Path) -> str:
     return path_to_file.stem
 
 
-def _pick_stylesheet(dom: BeautifulSoup) -> str:
-    styles: ResultSet[Tag] = dom.find_all('style')
+def _pick_stylesheet(src: Source) -> str:
+    styles: ResultSet[Tag] = src.tag.find_all('style')
     if len(styles) > 1:
-        lines = ','.join(map(lambda s: str(s.sourceline), styles))
-        raise HtmlpException(f"Multiple <style> tags are not allowed within single component. Lines: {lines}")
+        raise ex.MultipleTopLevelTags(styles, src.path)
     if len(styles) == 0:
         return ''
     return styles[0].decode_contents()
 
 
-def _pick_args_def(dom: BeautifulSoup) -> List[ComponentArgDefinition]:
-    template = cast(Tag, dom.find('template', recursive=False))
+def _pick_args_def(src: Source) -> List[ComponentArgDefinition]:
+    template = cast(Tag, src.tag.find('template', recursive=False))
     if template is None:
         return []
     args = str(template.get('args', '')).split()
-    return list(map(ComponentArgDefinition, args))
+    defs = list(map(ComponentArgDefinition, args))
+    for d in defs:
+        if d.name == "children":
+            raise ex.NoChildrenArg(src.path, template.sourceline)
+    return defs
 
 
-def _pick_template(dom: BeautifulSoup) -> Tag | None:
-    templates = dom.select('template')
+def _pick_template(src: Source) -> Tag | None:
+    templates = src.tag.select('template')
     if len(templates) > 1:
-        lines = ','.join(map(lambda s: str(s.sourceline), templates))
-        raise HtmlpException(f"Multiple <template> tags are not allowed within single component. Lines: {lines}")
+        raise ex.MultipleTopLevelTags(templates, src.path)
     if len(templates) == 0:
         return None
     return templates[0]
 
 
-def _pick_script(dom: BeautifulSoup) -> str:
-    scripts = dom.select('script')
+def _pick_script(src: Source) -> str:
+    scripts = src.tag.select('script')
     if len(scripts) > 1:
-        lines = ','.join(map(lambda s: str(s.sourceline), scripts))
-        raise HtmlpException(f"Multiple <script> tags are not allowed within single component. Lines: {lines}")
+        raise ex.MultipleTopLevelTags(scripts, src.path)
     if len(scripts) == 0:
         return ''
     return scripts[0].decode_contents()

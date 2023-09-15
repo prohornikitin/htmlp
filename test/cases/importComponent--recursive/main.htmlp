@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <import path="HelloComponent.htmlp"/>
+        <import path="First.htmlp"/>
         <title>Title</title>
     </head>
     <body>
+        <First/>
     </body>
 </html>
