@@ -1,13 +1,14 @@
-# flake8: noqa
-from functools import reduce
+
 from pathlib import Path
-import sys
 from typing import Iterable, List, Never, Set
 from os import getcwd
 from bs4 import Tag
 
 
-def _assemble_location_string(file: Path | None, line: int | None = None) -> str:
+def _assemble_location_string(
+    file: Path | None,
+    line: int | None = None
+) -> str:
     if file is None:
         return 'Error'
     if line is None:
@@ -22,11 +23,16 @@ class HtmlpException(Exception):
     line: int | None
     msg: str
 
-    def __init__(self, *sentences, **kwargs):
-        self.file = kwargs.get('file')
-        self.line = kwargs.get('line')
+    def __init__(
+        self,
+        *sentences: str,
+        file: Path | None = None,
+        line: int | None = None
+    ):
+        self.file = file
+        self.line = line
         self.msg = '. '.join(sentences)
-        text = _assemble_location_string(self.file, self.line) + ':\n' + self.msg + '.'
+        text = _assemble_location_string(file, line) + ':\n' + self.msg + '.'
         super().__init__(text)
 
 
@@ -77,13 +83,15 @@ class NoRequiredAttr(HtmlpException):
     ):
         super().__init__(
             f"Can't find '{attr}' attribute of <{tag}/>",
+            file=file,
+            line=line,
         )
 
 
 class SameImportAliases(HtmlpException):
     def __init__(self, alias: str, file: Path):
         super().__init__(
-            f"Can't use same alias {alias} on different imports in the same file",
+            f"Can't use same alias {alias} on different imports in the same file",  # noqa: E501
             file=file,
         )
 
@@ -108,17 +116,23 @@ class ProhibitedTopLevelTag(HtmlpException):
 class MultipleTopLevelTags(HtmlpException):
     def __init__(self, tags: List[Tag], file: Path):
         lines = ','.join(map(lambda s: str(s.sourceline), tags))
+        tag = tags[0].name
         super().__init__(
-            f"Multiple <{tags[0].name}> tags are not allowed within single component",
+            f"Multiple <{tag}> tags are not allowed within single component",
             f"Lines: {lines}",
             file=file,
         )
 
 
 class ExtraArgs(HtmlpException):
-    def __init__(self, extra_args: Set[str], file: Path, line: int | None = None):
+    def __init__(
+        self,
+        extra_args: Set[str],
+        file: Path,
+        line: int | None = None
+    ):
         formatted_extra_args = ','.join(
-            map(lambda a: f"'a'", extra_args)
+            map(lambda a: f"'{a}'", extra_args)
         )
         if len(extra_args) == 1:
             msg = f"Extra argument {formatted_extra_args}"

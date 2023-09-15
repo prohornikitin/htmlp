@@ -1,2 +1,2 @@
 Error in file test/cases/component--arg--extra/main.htmlp, on line 8:
-Extra argument 'a'.
+Extra argument 'non-existing-arg'.
