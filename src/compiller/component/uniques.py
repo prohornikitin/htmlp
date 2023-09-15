@@ -18,7 +18,7 @@ def _get_next() -> str:
     return next_unique
 
 
-class UniquesPerComponentInstance:
+class UniquesPerComponent:
     _uniques_by_name: Dict[str, str]
 
     def __init__(self) -> None:

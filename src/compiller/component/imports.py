@@ -62,7 +62,7 @@ def parse_imports_and_remove_them(
         if alias in imports.keys():
             raise ex.SameImportAliases(alias, source.path)
         route.append(path)
-        imports[alias] = parse_definition(
+        imports[alias] = _parse_definition(
             source,
             path,
             lambda src: parse_imports_and_remove_them(src, include_dir, route)
@@ -82,7 +82,7 @@ def ensure_no_recursion(route: List[Path]) -> None:
 _cache_by_path: Dict[Path, ComponentDefinition] = dict()
 
 
-def parse_definition(
+def _parse_definition(
     src: Source,
     path: Path,
     parse_imports: Callable[[Source], Imports],

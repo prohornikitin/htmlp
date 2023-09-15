@@ -7,7 +7,7 @@ from typing import cast
 from bs4 import PageElement, Tag
 
 from compiller.Source import Source
-from .uniques import UniquesPerComponentInstance
+from .uniques import UniquesPerComponent
 from .imports import ComponentArgDefinition, ComponentDefinition, Imports
 from .. import exceptions as ex
 
@@ -85,12 +85,14 @@ class Component:
     _def: ComponentDefinition
     _usage: Tag
     _usage_file: Path
+    _uniques: UniquesPerComponent
 
     def __init__(
         self,
         definition: ComponentDefinition,
         usage_src: Source,
     ) -> None:
+        self._uniques = UniquesPerComponent()
         self._def = definition
         self._usage = usage_src.tag
         self._usage_file = usage_src.path
@@ -141,14 +143,13 @@ class Component:
     def _substitute_inner_components(self) -> None:
         imports = cast(Imports, self._def.imports)
         substitute_components(imports, Source(self._def.file, self._html))
-    
+
     def _apply_uniques(self) -> None:
-        uniques = UniquesPerComponentInstance()
         unique_id_pattern = re.compile('![A-z]+\\s|![A-z_-]+$')
         for tag in self._html.find_all():
             for [name, value] in tag.attrs.copy().items():
                 for id in unique_id_pattern.findall(value):
-                    value = value.replace(id, uniques.get_by_id(id))
+                    value = value.replace(id, self._uniques.get_by_id(id))
                 tag[name] = value
 
     def _insert_children(self) -> None:
