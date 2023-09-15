@@ -9,6 +9,7 @@ ROOT_DIR = Path(__file__).parent.parent
 TEST_DIR = ROOT_DIR / 'test'
 EXEC = TEST_DIR.parent / 'src' / 'main.py'
 
+at_least_one_test_failed: bool = False
 
 def minify(s: str) -> str:
     return minify_html.minify(
@@ -23,7 +24,9 @@ def print_success(dir: Path) -> None:
     print(f"Test '{id}' - SUCCESS")
 
 
-def print_fail(dir: Path) -> None:
+def fail(dir: Path) -> None:
+    global at_least_one_test_failed
+    at_least_one_test_failed = True
     id = dir.relative_to(TEST_DIR / 'cases')
     print(f"Test '{id}' - FAIL")
 
@@ -45,7 +48,7 @@ def expect(expected: str, dir: Path) -> None:
     if (test.returncode == 0) and (actual == expected):
         print_success(dir)
         return
-    print_fail(dir)
+    fail(dir)
     if test.returncode == 0:
         print('Expected:')
         print(expected)
@@ -63,12 +66,12 @@ def expect_error(stderr_expected: str, dir: Path) -> None:
     stderr = process_err.decode(sys.stderr.encoding)
     if test.returncode == 0:
         output = process_out.decode(sys.stdout.encoding)
-        print_fail(dir)
+        fail(dir)
         print('Expected error but it has generated something:')
         print(output)
         print()
     elif stderr != stderr_expected:
-        print_fail(dir)
+        fail(dir)
         print('Test failed as expected. But an error differs from what was expected.')
         print('Expected error:')
         print(stderr_expected)
@@ -80,7 +83,7 @@ def expect_error(stderr_expected: str, dir: Path) -> None:
 
 
 def run_illformed(dir: Path) -> None:
-    print_fail(dir)
+    fail(dir)
     test = popen(dir)
     process_out, process_err = test.communicate()
     print('Test considered illformed becase it has no expectation files. But you can see result:')
@@ -97,11 +100,11 @@ def run_single_case(dir: Path) -> None:
     if expected_output_path.exists():
         with open(expected_output_path) as file:
             expected = file.read()
-        return expect(expected, dir)
+        expect(expected, dir)
     elif expected_stderr_path.exists():
         with open(expected_stderr_path) as file:
             expected = file.read()
-        return expect_error(expected, dir)
+        expect_error(expected, dir)
     else:
         run_illformed(dir)
 
@@ -124,3 +127,6 @@ if __name__ == '__main__':
     else:
         for test_case in cases.iterdir():
             run_single_case(test_case)
+    
+    if at_least_one_test_failed:
+        exit(1)
