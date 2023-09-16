@@ -1,0 +1,2 @@
+Error in file test/cases/importComponent--file-not-exists/main.htmlp, on line 4:
+Cannot import component from non-existant file /home/prokhor40/Programming/htmlp/test/cases/importComponent--file-not-exists/Component.htmlp.
