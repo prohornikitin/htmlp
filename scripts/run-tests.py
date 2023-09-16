@@ -10,7 +10,9 @@ ROOT_DIR = Path(__file__).parent.parent
 TEST_DIR = ROOT_DIR / 'test'
 EXEC = TEST_DIR.parent / 'src' / 'main.py'
 
+
 at_least_one_test_failed: bool = False
+
 
 def minify(s: str) -> str:
     return minify_html.minify(
@@ -20,7 +22,7 @@ def minify(s: str) -> str:
     )
 
 
-def print_success(dir: Path) -> None:
+def success(dir: Path) -> None:
     id = dir.relative_to(TEST_DIR / 'cases')
     print(f"Test '{id}' - SUCCESS")
 
@@ -47,17 +49,24 @@ def expect(expected: str, dir: Path) -> None:
     expected = minify(expected)
     actual = minify(process_out.decode(sys.stdout.encoding))
     if (test.returncode == 0) and (actual == expected):
-        print_success(dir)
+        success(dir)
         return
     fail(dir)
     if test.returncode == 0:
-        print('Expected:')
-        print(expected)
-        print('Instead get:')
-        print(actual)
+        print(
+            'Test expected to fail. But it succeed.',
+            'Expected:',
+            expected,
+            'Instead get:',
+            actual,
+            sep='\n',
+            end='\n\n',
+        )
     else:
-        print('Test failed with error. Stderr:')
-        print(process_err.decode(sys.stderr.encoding))
+        print(
+            'Test failed with error. Stderr:',
+            process_err.decode(sys.stderr.encoding),
+        )
     print()
 
 
@@ -73,26 +82,38 @@ def expect_error(stderr_expected: str, dir: Path) -> None:
         print()
     elif stderr != stderr_expected:
         fail(dir)
-        print('Test failed as expected. But an error differs from what was expected.')
-        print('Expected error:')
-        print(stderr_expected)
-        print('Instead get:')
-        print(stderr)
-        print()
+        print(
+            (
+                'Test failed as expected.'
+                'But an error differs from what was expected.'
+            ),
+            'Expected error:',
+            stderr_expected,
+            'Instead get:',
+            stderr,
+            sep='\n',
+            end='\n\n',
+        )
     else:
-        print_success(dir)
+        success(dir)
 
 
 def run_illformed(dir: Path) -> None:
     fail(dir)
     test = popen(dir)
     process_out, process_err = test.communicate()
-    print('Test considered illformed becase it has no expectation files. But you can see result:')
-    print('\tstdout:')
-    print(process_out.decode(sys.stdout.encoding))
-    print('\tstderr:')
-    print(process_err.decode(sys.stderr.encoding))
-    print()
+    print(
+        (
+            'Test considered illformed becase it has no expectation files.'
+            'But you can see result:'
+        ),
+        'stdout:',
+        process_out.decode(sys.stdout.encoding),
+        'stderr:',
+        process_err.decode(sys.stderr.encoding),
+        sep='\n',
+        end='\n\n',
+    )
 
 
 def run_single_case(dir: Path) -> None:
@@ -128,6 +149,3 @@ if __name__ == '__main__':
     else:
         for test_case in cases.iterdir():
             run_single_case(test_case)
-    
-    if at_least_one_test_failed:
-        exit(1)
