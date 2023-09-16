@@ -63,7 +63,7 @@ def parse_imports_and_remove_them(
             raise ex.SameImportAliases(alias, source.path)
         route.append(path)
         imports[alias] = _parse_definition(
-            source,
+            Source(source.path, tag),
             path,
             lambda src: parse_imports_and_remove_them(src, include_dir, route)
         )
@@ -89,7 +89,7 @@ def _parse_definition(
 ) -> ComponentDefinition:
     if path not in _cache_by_path.keys():
         if not path.exists():
-            raise ex.ImportedFileNotFound(path, src.path)
+            raise ex.ImportedFileNotFound(path, src.path, src.tag.sourceline)
         source = Source(path)
         _check_for_disallowed_toplevel_tags(source)
         imports = parse_imports(source)

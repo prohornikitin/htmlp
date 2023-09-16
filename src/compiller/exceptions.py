@@ -97,9 +97,15 @@ class SameImportAliases(HtmlpException):
 
 
 class ImportedFileNotFound(HtmlpException):
-    def __init__(self, imported: Path, source: Path):
+    def __init__(
+        self,
+        imported: Path,
+        source: Path,
+        source_line: int | None = None
+    ):
         super().__init__(
             f"Cannot import component from non-existant file {imported}",
+            line=source_line,
             file=source,
         )
 
