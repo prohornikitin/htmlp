@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import Iterable, Optional, TextIO
+from typing import Optional, TextIO
 import sys
 from dataclasses import dataclass
 
@@ -8,7 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True, kw_only=True)
 class Args:
     out: TextIO
-    input: Iterable[Path]
+    input: Path
     include_dir: Path
     need_minify: bool
     watch_dir: Optional[Path]
@@ -19,7 +19,6 @@ def parse_args() -> Args:
     parser.add_argument(
         'input_file',
         type=str,
-        nargs=1,
         help='An input file',
     )
     parser.add_argument(
@@ -61,7 +60,7 @@ def parse_args() -> Args:
     elif args.watch is None:
         watch = Path('.')
     else:
-        watch = Path(args.watch)
+        watch = Path(args.watch).absolute()
 
     if args.output_file is None:
         out = sys.stdout
@@ -70,8 +69,8 @@ def parse_args() -> Args:
 
     return Args(
         out=out,
-        input=map(Path, args.input_file),
-        include_dir=Path(args.include_dir),
+        input=Path(args.input_file).absolute(),
+        include_dir=Path(args.include_dir).absolute(),
         need_minify=args.minify,
         watch_dir=watch,
     )

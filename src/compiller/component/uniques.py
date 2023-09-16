@@ -18,6 +18,11 @@ def _get_next() -> str:
     return next_unique
 
 
+def restart_uniques_generator():
+    global _count
+    _count = 0
+
+
 class UniquesPerComponent:
     _uniques_by_name: Dict[str, str]
 

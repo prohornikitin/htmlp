@@ -48,7 +48,7 @@ def parse_imports_and_remove_them(
 ) -> Imports:
     if route is None:
         route = [source.path]
-    ensure_no_recursion(route)
+    _ensure_no_recursion(route)
 
     imports: Imports = dict()
     for tag in source.tag.select('import'):
@@ -72,7 +72,7 @@ def parse_imports_and_remove_them(
     return imports
 
 
-def ensure_no_recursion(route: List[Path]) -> None:
+def _ensure_no_recursion(route: List[Path]) -> None:
     if len(route) == 0:
         return
     if route.index(route[-1]) != len(route) - 1:
@@ -82,11 +82,17 @@ def ensure_no_recursion(route: List[Path]) -> None:
 _cache_by_path: Dict[Path, ComponentDefinition] = dict()
 
 
+def clear_imports_cache():
+    global _cache_by_path
+    _cache_by_path = dict()
+
+
 def _parse_definition(
     src: Source,
     path: Path,
     parse_imports: Callable[[Source], Imports],
 ) -> ComponentDefinition:
+    global _cache_by_path
     if path not in _cache_by_path.keys():
         if not path.exists():
             raise ex.ImportedFileNotFound(path, src.path, src.tag.sourceline)
